@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import JSONField
 
 
 class Theme(models.Model):
@@ -10,6 +11,7 @@ class Theme(models.Model):
         title (str): Название темы.
         preview_image (ImageField): Изображение-превью темы.
         description (str): Описание темы.
+        updated_at (DateTimeField): Дата и время последнего обновления темы.
     """
 
     title = models.CharField(max_length=200)
@@ -21,7 +23,7 @@ class Theme(models.Model):
 
     def __str__(self) -> str:
         """Возвращает строковое представление темы (название)."""
-        return str(self.title)
+        return self.title
 
 
 class Material(models.Model):
@@ -54,7 +56,7 @@ class Material(models.Model):
         upload_to="material_previews/", null=True, blank=True
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Возвращает строковое представление материала (название)."""
         return self.title
 
@@ -78,7 +80,7 @@ class Review(models.Model):
         related_name="reviews",
     )
     theme = models.ForeignKey(
-        "Theme", related_name="reviews", on_delete=models.CASCADE, verbose_name="Тема"
+        Theme, related_name="reviews", on_delete=models.CASCADE, verbose_name="Тема"
     )
     rating = models.IntegerField(
         verbose_name="Оценка",
@@ -87,9 +89,9 @@ class Review(models.Model):
     content = models.TextField(blank=True, null=True, verbose_name="Содержимое отзыва")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Возвращает строковое представление отзыва."""
-        return f"Review by {self.user} for {self.theme}"
+        return f"Отзыв от {self.user} на тему {self.theme}"
 
 
 class Test(models.Model):
@@ -110,7 +112,7 @@ class Test(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Возвращает строковое представление теста (название)."""
         return self.title
 
@@ -120,20 +122,37 @@ class Question(models.Model):
     Модель вопроса теста.
 
     Атрибуты:
+        owner (CustomUser): Владелец, которому принадлежит вопрос.
         test (Test): Тест, к которому принадлежит вопрос.
         question_text (str): Текст вопроса.
-        correct_answer (str): Правильный ответ на вопрос.
+        correct_answer (JSONField): Правильный ответ (может быть текстом или числом).
+        question_type (str): Тип вопроса (multiple_choice или open_ended).
         created_at (DateTimeField): Дата и время создания вопроса.
         updated_at (DateTimeField): Дата и время последнего обновления вопроса.
     """
 
+    QUESTION_TYPE_CHOICES = [
+        ("multiple_choice", "Варианты ответа"),
+        ("open_ended", "Открытый вопрос"),
+    ]
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True
+    )
     test = models.ForeignKey(Test, related_name="questions", on_delete=models.CASCADE)
     question_text = models.TextField()
-    correct_answer = models.CharField(max_length=200)
+    correct_answer = JSONField(
+        blank=True,
+        null=True,
+        help_text="Правильный ответ (может быть текстом или числом).",
+    )
+    question_type = models.CharField(
+        max_length=20, choices=QUESTION_TYPE_CHOICES, default="multiple_choice"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Возвращает строковое представление вопроса (текст вопроса)."""
         return self.question_text
 
@@ -154,6 +173,27 @@ class Answer(models.Model):
     answer_text = models.CharField(max_length=200)
     is_correct = models.BooleanField(default=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Возвращает строковое представление варианта ответа (текст варианта)."""
         return self.answer_text
+
+
+class TestResult(models.Model):
+    """
+    Модель для хранения результатов теста пользователя.
+
+    Атрибуты:
+        user (CustomUser): Пользователь, который прошел тест.
+        test (Test): Тест, который был пройден.
+        score (int): Набранные баллы.
+        created_at (DateTimeField): Дата и время прохождения теста.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    test = models.ForeignKey(Test, on_delete=models.CASCADE)
+    score = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        """Возвращает строковое представление результата теста."""
+        return f"{self.user.username} - {self.test.title} - {self.score} баллов"

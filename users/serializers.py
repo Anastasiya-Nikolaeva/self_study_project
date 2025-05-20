@@ -56,11 +56,29 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_password(self, value):
+        """
+        Проверка пароля на минимальную длину.
+
+        Аргументы:
+            value (str): Пароль пользователя.
+
+        Исключения:
+            ValidationError: Если пароль содержит менее 8 символов.
+        """
         if len(value) < 8:
             raise ValidationError("Пароль должен содержать не менее 8 символов.")
         return value
 
     def create(self, validated_data):
+        """
+        Создание нового пользователя.
+
+        Аргументы:
+            validated_data (dict): Данные, прошедшие валидацию.
+
+        Возвращает:
+            CustomUser: Созданный пользователь.
+        """
         user = CustomUser.objects.create_user(
             email=validated_data["email"],
             username=validated_data["username"],
