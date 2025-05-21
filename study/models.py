@@ -57,6 +57,9 @@ class Material(models.Model):
         upload_to="material_previews/", null=True, blank=True
     )
 
+    class Meta:
+        ordering = ['title']  # Порядок по умолчанию по названию материала
+
     def __str__(self) -> str:
         """Возвращает строковое представление материала (название)."""
         return self.title
@@ -89,6 +92,9 @@ class Review(models.Model):
     )
     content = models.TextField(blank=True, null=True, verbose_name="Содержимое отзыва")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+
+    class Meta:
+        ordering = ['created_at'] # Порядок по умолчанию по созданию отзыва
 
     def __str__(self) -> str:
         """Возвращает строковое представление отзыва."""
