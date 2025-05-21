@@ -1,17 +1,21 @@
 import logging
 
-from rest_framework import filters, status, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.response import Response
 
-from users.permissions import IsAdmin, IsOwner
+from users.permissions import IsAdmin, IsAdminOrOwner, IsAuthenticatedForRead, IsOwner
 
 from .models import Answer, Material, Question, Review, Test, TestResult, Theme
 from .pagination import StandardResultsSetPagination
-from .serializers import (CheckAnswerSerializer, MaterialSerializer,
-                          QuestionSerializer, ReviewSerializer,
-                          TestResultSerializer, TestSerializer,
-                          ThemeSerializer)
+from .serializers import (
+    CheckAnswerSerializer,
+    MaterialSerializer,
+    QuestionSerializer,
+    ReviewSerializer,
+    TestResultSerializer,
+    TestSerializer,
+    ThemeSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +23,23 @@ logger = logging.getLogger(__name__)
 class ThemeViewSet(viewsets.ModelViewSet):
     """
     ViewSet для управления темами изучения.
-
-    Доступные действия:
-        - list: Получить список всех тем.
-        - create: Создать новую тему.
-        - retrieve: Получить информацию о конкретной теме.
-        - update: Обновить информацию о теме.
-        - destroy: Удалить тему.
     """
 
     queryset = Theme.objects.all()
     serializer_class = ThemeSerializer
-    permission_classes = [IsAdmin | IsOwner]
+    permission_classes = [IsAdminOrOwner]
     filter_backends = [filters.SearchFilter]
-    search_fields = ["title", "description"]  # Исправлено на правильные поля
+    search_fields = ["title", "description"]
     pagination_class = StandardResultsSetPagination
+
+    def create(self, request, *args, **kwargs):
+        # Устанавливаем владельца темы на текущего пользователя
+        request.data['owner'] = request.user.id
+        return super().create(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        # Обновляем только те поля, которые можно обновить
+        serializer.save()
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -50,7 +56,7 @@ class MaterialViewSet(viewsets.ModelViewSet):
 
     queryset = Material.objects.all()
     serializer_class = MaterialSerializer
-    permission_classes = [IsAdmin | IsOwner]
+    permission_classes = [IsAdminOrOwner]
     pagination_class = StandardResultsSetPagination
 
 
@@ -68,8 +74,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsAdmin | IsOwner]
     pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        if self.request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+            # Разрешить доступ только владельцам или администраторам
+            self.permission_classes = [IsOwner | IsAdmin]
+        else:
+            # Все могут просматривать отзывы
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
 
 
 class TestViewSet(viewsets.ModelViewSet):
@@ -86,7 +100,7 @@ class TestViewSet(viewsets.ModelViewSet):
 
     queryset = Test.objects.all()
     serializer_class = TestSerializer
-    permission_classes = [IsAdmin | IsOwner]
+    permission_classes = [IsAdminOrOwner]
     pagination_class = StandardResultsSetPagination
 
     def create(self, request, *args, **kwargs):
@@ -113,7 +127,7 @@ class AnswerViewSet(viewsets.ViewSet):
         - check_answer: Проверить ответ пользователя на вопрос.
     """
 
-    permission_classes = [IsAdmin | IsOwner]
+    permission_classes = [IsAdminOrOwner]
 
     def check_answer(self, request):
         """
@@ -197,7 +211,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-    permission_classes = [IsAdmin | IsOwner]
+    permission_classes = [IsAdminOrOwner]
 
     def create(self, request, *args, **kwargs):
         """
@@ -335,7 +349,14 @@ class TestResultViewSet(viewsets.ViewSet):
         - list_by_user: Получить результаты тестов для указанного пользователя.
     """
 
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+            # Разрешить доступ только администраторам или владельцам
+            self.permission_classes = [IsAdminOrOwner]
+        else:
+            # Все аутентифицированные пользователи могут просматривать
+            self.permission_classes = [IsAuthenticatedForRead]
+        return super().get_permissions()
 
     def list(self, request):
         """

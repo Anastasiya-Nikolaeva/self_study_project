@@ -1,12 +1,16 @@
 from django.urls import path
 
-from users.apps import UsersConfig
+from .views import (
+    AnswerViewSet,
+    MaterialViewSet,
+    QuestionViewSet,
+    ReviewViewSet,
+    TestResultViewSet,
+    TestViewSet,
+    ThemeViewSet,
+)
 
-from .views import (AnswerViewSet, MaterialViewSet, QuestionViewSet,
-                    ReviewViewSet, TestResultViewSet, TestViewSet,
-                    ThemeViewSet)
-
-app_name = UsersConfig.name
+app_name = "study"
 
 urlpatterns = [
     path(

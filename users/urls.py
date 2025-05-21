@@ -1,13 +1,10 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import (TokenObtainPairView,
-                                            TokenRefreshView)
-
-from users.apps import UsersConfig
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import CustomUserViewSet
 
-app_name = UsersConfig.name
+app_name = "users"
 
 router = DefaultRouter()
 router.register(r"users", CustomUserViewSet, basename="customuser")

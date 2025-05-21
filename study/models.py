@@ -20,6 +20,7 @@ class Theme(models.Model):
     )
     description = models.TextField()
     updated_at = models.DateTimeField(auto_now=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
 
     def __str__(self) -> str:
         """Возвращает строковое представление темы (название)."""
