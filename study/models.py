@@ -22,6 +22,9 @@ class Theme(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
 
+    class Meta:
+        ordering = ['title']  # Порядок по умолчанию по названию материала
+
     def __str__(self) -> str:
         """Возвращает строковое представление темы (название)."""
         return self.title
@@ -118,6 +121,9 @@ class Test(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['title']  # Порядок по умолчанию по названию теста
 
     def __str__(self) -> str:
         """Возвращает строковое представление теста (название)."""
