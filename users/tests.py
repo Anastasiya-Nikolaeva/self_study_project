@@ -1,9 +1,7 @@
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-
-from .models import CustomUser
-
+from users.models import CustomUser
 
 class CustomUserViewSetTests(APITestCase):
 
@@ -43,3 +41,31 @@ class CustomUserViewSetTests(APITestCase):
         }
         response = self.client.post(self.create_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_user_with_existing_email(self):
+        # Тест на создание пользователя с уже существующим email
+        data = {
+            "username": "anotheruser",
+            "email": "user@example.com",  # Существующий email
+            "password": "newpassword",
+        }
+        response = self.client.post(self.create_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_user_without_email(self):
+        # Тест на создание пользователя без email
+        data = {
+            "username": "newuser",
+            "password": "newpassword",
+        }
+        response = self.client.post(self.create_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_user_without_password(self):
+        # Тест на создание пользователя без пароля
+        data = {
+            "username": "newuser",
+            "email": "newuser@example.com",
+        }
+        response = self.client.post(self.create_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

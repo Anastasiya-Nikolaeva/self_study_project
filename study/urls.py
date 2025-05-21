@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .views import (
     AnswerViewSet,
@@ -13,6 +14,7 @@ from .views import (
 app_name = "study"
 
 urlpatterns = [
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path(
         "themes/",
         ThemeViewSet.as_view({"get": "list", "post": "create"}),
