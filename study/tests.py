@@ -6,7 +6,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import CustomUser as User
 
 from .models import Material, Theme, Review
-from .serializers import ReviewSerializer
 
 User = get_user_model()
 
@@ -37,11 +36,20 @@ class ThemeViewSetTests(APITestCase):
     def get_jwt_token(self, user):
         """
         Получает JWT токен для указанного пользователя.
+
+        :param user: Пользователь, для которого требуется получить токен.
+        :return: JWT токен в виде строки.
         """
         refresh = RefreshToken.for_user(user)
         return str(refresh.access_token)
 
     def test_create_theme_as_owner(self):
+        """
+        Проверяет, что владелец может создать новую тему.
+
+        Ожидается, что статус ответа будет 201 (Создано) и новая тема будет
+        добавлена в базу данных с правильным владельцем.
+        """
         token = self.get_jwt_token(self.owner)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)  # Устанавливаем токен в заголовок
 
@@ -56,6 +64,11 @@ class ThemeViewSetTests(APITestCase):
         self.assertEqual(theme.owner, self.owner)  # Проверяем, что владелец установлен правильно
 
     def test_create_theme_as_admin(self):
+        """
+        Проверяет, что администратор не может создать новую тему.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
+        """
         token = self.get_jwt_token(self.admin)
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)  # Устанавливаем токен в заголовок
         response = self.client.post(reverse('study:theme-list'), {
@@ -67,6 +80,8 @@ class ThemeViewSetTests(APITestCase):
     def test_other_user_cannot_create_theme(self):
         """
         Проверяет, что другой пользователь не может создать новую тему.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
         """
         token = self.get_jwt_token(self.other_user)
         url = reverse("study:theme-list")
@@ -80,6 +95,8 @@ class ThemeViewSetTests(APITestCase):
     def test_unauthenticated_user_cannot_create_theme(self):
         """
         Проверяет, что неаутентифицированный пользователь не может создать новую тему.
+
+        Ожидается, что статус ответа будет 401 (Не авторизован).
         """
         url = reverse("study:theme-list")
         data = {
@@ -92,6 +109,8 @@ class ThemeViewSetTests(APITestCase):
     def test_owner_can_update_theme(self):
         """
         Проверяет, что владелец темы может обновить ее.
+
+        Ожидается, что статус ответа будет 200 (ОК) и заголовок темы будет обновлен.
         """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:theme-detail", args=[self.theme.pk])
@@ -105,6 +124,8 @@ class ThemeViewSetTests(APITestCase):
         """
         Проверяет, что другой пользователь, который не является владельцем темы,
         не может обновить ее.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
         """
         token = self.get_jwt_token(self.other_user)
         url = reverse("study:theme-detail", args=[self.theme.pk])
@@ -115,6 +136,8 @@ class ThemeViewSetTests(APITestCase):
     def test_admin_can_update_theme(self):
         """
         Проверяет, что администратор может обновить любую тему.
+
+        Ожидается, что статус ответа будет 200 (ОК) и заголовок темы будет обновлен.
         """
         token = self.get_jwt_token(self.admin)
         url = reverse("study:theme-detail", args=[self.theme.pk])
@@ -125,11 +148,13 @@ class ThemeViewSetTests(APITestCase):
         response = self.client.patch(url, data, HTTP_AUTHORIZATION=f"Bearer {token}")
         self.theme.refresh_from_db()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(self.theme.title, "Обновление администратора")
+        self.assertEqual(self.theme.title, "Обновление администратора")  # Проверяем, что заголовок обновлен
 
     def test_unauthenticated_user_cannot_update_theme(self):
         """
         Проверяет, что неаутентифицированный пользователь не может обновить тему.
+
+        Ожидается, что статус ответа будет 401 (Не авторизован).
         """
         url = reverse("study:theme-detail", args=[self.theme.pk])
         data = {"title": "Несанкционированное обновление"}
@@ -174,6 +199,9 @@ class MaterialViewSetTests(APITestCase):
     def get_jwt_token(self, user):
         """
         Получает JWT токен для указанного пользователя.
+
+        :param user: Пользователь, для которого требуется токен.
+        :return: JWT токен в виде строки.
         """
         refresh = RefreshToken.for_user(user)
         return str(refresh.access_token)
@@ -181,6 +209,9 @@ class MaterialViewSetTests(APITestCase):
     def test_list_materials(self):
         """
         Проверяет, что аутентифицированный пользователь может получить список материалов.
+
+        Ожидается, что статус ответа будет 200 OK и в списке материалов будет
+        присутствовать тестовый материал.
         """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:material-list")
@@ -193,7 +224,10 @@ class MaterialViewSetTests(APITestCase):
 
     def test_create_material_with_nonexistent_theme(self):
         """
-         Проверяет, что создание материала с несуществующей темой возвращает 404.
+        Проверяет, что создание материала с несуществующей темой возвращает 404.
+
+        Ожидается, что статус ответа будет 404 Not Found и в сообщении об ошибке
+        будет указано, что тема не найдена.
         """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:material-list")
@@ -207,6 +241,12 @@ class MaterialViewSetTests(APITestCase):
         self.assertIn("Тема не найдена", response.data["detail"])
 
     def test_create_material_as_owner(self):
+        """
+        Проверяет возможность создания нового материала владельцем.
+
+        Ожидается, что материал будет успешно создан, и статус ответа будет 201 Created.
+        Если создание не удалось, выводятся ошибки валидации.
+        """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:material-list")
         data = {
@@ -224,6 +264,8 @@ class MaterialViewSetTests(APITestCase):
     def test_owner_can_destroy_material(self):
         """
         Проверяет, что владелец может удалить свой материал.
+
+        Ожидается, что материал будет успешно удален, и статус ответа будет 204 No Content.
         """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:material-detail", args=[self.material.pk])
@@ -232,6 +274,12 @@ class MaterialViewSetTests(APITestCase):
         self.assertFalse(Material.objects.filter(pk=self.material.pk).exists())  # Проверяем, что материал был удален
 
     def test_update_material_as_owner(self):
+        """
+        Проверяет возможность обновления материала владельцем.
+
+        Ожидается, что материал будет успешно обновлен, и статус ответа будет 200 OK.
+        Если обновление не удалось, выводятся ошибки валидации.
+        """
         token = self.get_jwt_token(self.owner)
         url = reverse("study:material-detail", args=[self.material.pk])
         data = {
@@ -247,6 +295,12 @@ class MaterialViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_material_as_admin(self):
+        """
+        Проверяет возможность обновления материала администратором.
+
+        Ожидается, что материал будет успешно обновлен, и статус ответа будет 200 OK.
+        Если обновление не удалось, выводятся ошибки валидации.
+        """
         token = self.get_jwt_token(self.admin)
         url = reverse("study:material-detail", args=[self.material.pk])
         data = {
@@ -264,6 +318,8 @@ class MaterialViewSetTests(APITestCase):
     def test_admin_can_destroy_material(self):
         """
         Проверяет, что администратор может удалить материал.
+
+        Ожидается, что материал будет успешно удален, и статус ответа будет 204 No Content.
         """
         token = self.get_jwt_token(self.admin)
         url = reverse("study:material-detail", args=[self.material.pk])
@@ -307,11 +363,19 @@ class ReviewAPITests(APITestCase):
     def get_jwt_token(self, user):
         """
         Получает JWT токен для указанного пользователя.
+
+        :param user: Пользователь, для которого требуется токен.
+        :return: JWT токен в виде строки.
         """
         refresh = RefreshToken.for_user(user)
         return str(refresh.access_token)
 
     def test_create_review_as_authenticated_user(self):
+        """
+        Проверяет возможность создания отзыва аутентифицированным пользователем.
+
+        Ожидается, что отзыв будет успешно создан, и количество отзывов увеличится на 1.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.owner)
         )
@@ -331,6 +395,11 @@ class ReviewAPITests(APITestCase):
         )  # Проверяем, что owner установлен правильно
 
     def test_create_review_as_unauthenticated_user(self):
+        """
+        Проверяет попытку создания отзыва неаутентифицированным пользователем.
+
+        Ожидается, что будет возвращен статус 401 Unauthorized.
+        """
         url = reverse("study:review-list")
         data = {"theme": self.theme.id, "rating": 5, "content": "Отличный отзыв!"}
         response = self.client.post(url, data, format="json")
@@ -339,6 +408,11 @@ class ReviewAPITests(APITestCase):
         )  # Изменено на 401
 
     def test_update_review_as_owner(self):
+        """
+        Проверяет возможность обновления отзыва владельцем.
+
+        Ожидается, что отзыв будет успешно обновлен, и его содержимое изменится.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.owner)
         )
@@ -356,6 +430,11 @@ class ReviewAPITests(APITestCase):
         self.assertEqual(self.review.content, "Обновленный отзыв")
 
     def test_update_review_as_admin(self):
+        """
+        Проверяет возможность обновления отзыва администратором.
+
+        Ожидается, что отзыв будет успешно обновлен, и его содержимое изменится.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.admin)
             # Предполагается, что у вас есть администратор
@@ -363,7 +442,7 @@ class ReviewAPITests(APITestCase):
         url = reverse("study:review-detail", args=[self.review.id])
         data = {
             "content": "Обновленный отзыв администратором",
-            "user": self.review.user.pk,  # Пользователь, который оставил отзыв
+            "user": self.review.user.pk,
             "theme": self.review.theme.id,
             "rating": self.review.rating
         }
@@ -374,6 +453,11 @@ class ReviewAPITests(APITestCase):
         self.assertEqual(self.review.content, "Обновленный отзыв администратором")
 
     def test_delete_review_as_owner(self):
+        """
+        Проверяет возможность удаления отзыва владельцем.
+
+        Ожидается, что отзыв будет успешно удален, и статус ответа будет 204 No Content.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.owner)
         )
@@ -383,6 +467,11 @@ class ReviewAPITests(APITestCase):
         self.assertFalse(Review.objects.filter(id=self.review.id).exists())  # Проверяем, что отзыв удален
 
     def test_delete_review_as_admin(self):
+        """
+        Проверяет возможность удаления отзыва администратором.
+
+        Ожидается, что отзыв будет успешно удален, и статус ответа будет 204 No Content.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.admin)
         )
@@ -392,6 +481,11 @@ class ReviewAPITests(APITestCase):
         self.assertEqual(Review.objects.count(), 0)  # Проверяем, что отзыв удален
 
     def test_update_review_as_different_user(self):
+        """
+        Проверяет попытку обновления отзыва другим пользователем.
+
+        Ожидается, что доступ будет запрещен, и статус ответа будет 403 Forbidden.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.other_user)
         )
@@ -403,6 +497,12 @@ class ReviewAPITests(APITestCase):
         )  # Проверяем, что доступ запрещен
 
     def test_user_can_only_leave_one_review_per_theme(self):
+        """
+        Проверяет, что пользователь может оставить только один отзыв на одну тему.
+
+        Ожидается, что первый отзыв будет успешно создан, а попытка создать второй отзыв
+        на ту же тему вернет статус 400 Bad Request.
+        """
         self.client.credentials(
             HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.owner)
         )
@@ -414,4 +514,10 @@ class ReviewAPITests(APITestCase):
             "user": self.owner.pk
         }
         response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # Проверяем, что первый отзыв создан
+
+        # Попробуем оставить второй отзыв на ту же тему
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )  # Ожидаем ошибку
