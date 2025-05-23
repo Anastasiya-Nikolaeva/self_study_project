@@ -44,11 +44,11 @@ class IsAdminOrOwner(permissions.BasePermission):
             return False
 
         # Разрешаем создание объектов только владельцам
-        if request.method == 'POST':
+        if request.method == "POST":
             return request.user.is_owner  # Только владельцы могут создавать объекты
 
         # Для всех остальных методов (PUT, PATCH, DELETE)
-        if request.method in ['PUT', 'PATCH', 'DELETE']:
+        if request.method in ["PUT", "PATCH", "DELETE"]:
             if "pk" in view.kwargs:
                 try:
                     obj = view.get_queryset().get(pk=view.kwargs["pk"])

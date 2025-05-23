@@ -3,15 +3,19 @@ import logging
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.response import Response
 
-from users.permissions import (IsAdmin, IsAdminOrOwner, IsAuthenticatedForRead,
-                               IsOwner)
+from users.permissions import IsAdmin, IsAdminOrOwner, IsAuthenticatedForRead, IsOwner
 
 from .models import Answer, Material, Question, Review, Test, TestResult, Theme
 from .pagination import StandardResultsSetPagination
-from .serializers import (CheckAnswerSerializer, MaterialSerializer,
-                          QuestionSerializer, ReviewSerializer,
-                          TestResultSerializer, TestSerializer,
-                          ThemeSerializer)
+from .serializers import (
+    CheckAnswerSerializer,
+    MaterialSerializer,
+    QuestionSerializer,
+    ReviewSerializer,
+    TestResultSerializer,
+    TestSerializer,
+    ThemeSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +37,14 @@ class ThemeViewSet(viewsets.ModelViewSet):
         if not request.user.is_owner:
             return Response(
                 {"detail": "Недостаточно прав для создания темы."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # Создаем новый объект данных с добавленным владельцем
         data = request.data.copy()  # Копируем данные, чтобы сделать их изменяемыми
-        data['owner'] = request.user.id  # Устанавливаем текущего пользователя как владельца
+        data["owner"] = (
+            request.user.id
+        )  # Устанавливаем текущего пользователя как владельца
 
         # Используем сериализатор для создания новой темы
         serializer = self.get_serializer(data=data)
@@ -73,26 +79,26 @@ class MaterialViewSet(viewsets.ModelViewSet):
         if not request.user.is_owner:
             return Response(
                 {"detail": "Недостаточно прав для создания материала."},
-                status=status.HTTP_403_FORBIDDEN
+                status=status.HTTP_403_FORBIDDEN,
             )
 
-        theme_id = request.data.get('thema')
+        theme_id = request.data.get("thema")
         theme = Theme.objects.filter(id=theme_id).first()
 
         if theme is None:
             return Response(
-                {"detail": "Тема не найдена."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Тема не найдена."}, status=status.HTTP_404_NOT_FOUND
             )
 
         data = request.data.copy()
-        data['thema'] = theme.id
+        data["thema"] = theme.id
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()  # Владелец будет установлен автоматически на основе темы
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """
@@ -113,7 +119,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.request.method in ["POST", "PUT", "PATCH", "DELETE"]:
             # Разрешить доступ только владельцам или администраторам
-            self.permission_classes = [IsOwner | IsAdmin]
+            self.permission_classes = [IsAdminOrOwner]
         else:
             # Все могут просматривать отзывы
             self.permission_classes = [permissions.AllowAny]

@@ -1,8 +1,14 @@
 from django.urls import path
 
-from .views import (AnswerViewSet, MaterialViewSet, QuestionViewSet,
-                    ReviewViewSet, TestResultViewSet, TestViewSet,
-                    ThemeViewSet)
+from .views import (
+    AnswerViewSet,
+    MaterialViewSet,
+    QuestionViewSet,
+    ReviewViewSet,
+    TestResultViewSet,
+    TestViewSet,
+    ThemeViewSet,
+)
 
 app_name = "study"
 

@@ -27,7 +27,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "city",
             "avatar",
             "is_owner",
-            "is_superuser"
+            "is_superuser",
         ]
 
 
@@ -87,7 +87,7 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
         )
 
         # Устанавливаем is_owner только если пользователь - администратор
-        if self.context['request'].user.is_staff:
+        if self.context["request"].user.is_staff:
             user.is_owner = is_owner
 
         user.save()

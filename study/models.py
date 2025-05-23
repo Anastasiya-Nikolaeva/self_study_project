@@ -63,9 +63,7 @@ class Material(models.Model):
     preview_image = models.ImageField(
         upload_to="material_previews/", null=True, blank=True
     )
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
-    )
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     class Meta:
         ordering = ["title"]  # Порядок по умолчанию по названию материала
@@ -102,6 +100,14 @@ class Review(models.Model):
     )
     content = models.TextField(blank=True, null=True, verbose_name="Содержимое отзыва")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.owner and self.user:
+            self.owner = self.user
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["created_at"]  # Порядок по умолчанию по созданию отзыва
