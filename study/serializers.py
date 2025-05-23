@@ -37,6 +37,7 @@ class MaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Material
         fields = [
+            "id",
             "title",
             "content",
             "video_url",
@@ -44,6 +45,7 @@ class MaterialSerializer(serializers.ModelSerializer):
             "material_type",
             "description",
             "preview_image",
+            "owner",
         ]
 
 

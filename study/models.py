@@ -12,6 +12,7 @@ class Theme(models.Model):
         preview_image (ImageField): Изображение-превью темы.
         description (str): Описание темы.
         updated_at (DateTimeField): Дата и время последнего обновления темы.
+        owner (ForeignKey): Владелец темы (преподаватель).
     """
 
     title = models.CharField(max_length=200)
@@ -20,10 +21,12 @@ class Theme(models.Model):
     )
     description = models.TextField()
     updated_at = models.DateTimeField(auto_now=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1
+    )
 
     class Meta:
-        ordering = ['title']  # Порядок по умолчанию по названию материала
+        ordering = ["title"]  # Порядок по умолчанию по названию материала
 
     def __str__(self) -> str:
         """Возвращает строковое представление темы (название)."""
@@ -42,6 +45,7 @@ class Material(models.Model):
         material_type (str): Тип материала (например, "video", "article", "test").
         description (TextField): Описание материала (для уроков).
         preview_image (ImageField): Изображение-превью материала (для уроков).
+        owner (User): Владелец материала.
     """
 
     MATERIAL_TYPE_CHOICES = [
@@ -59,9 +63,12 @@ class Material(models.Model):
     preview_image = models.ImageField(
         upload_to="material_previews/", null=True, blank=True
     )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
 
     class Meta:
-        ordering = ['title']  # Порядок по умолчанию по названию материала
+        ordering = ["title"]  # Порядок по умолчанию по названию материала
 
     def __str__(self) -> str:
         """Возвращает строковое представление материала (название)."""
@@ -97,7 +104,7 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     class Meta:
-        ordering = ['created_at'] # Порядок по умолчанию по созданию отзыва
+        ordering = ["created_at"]  # Порядок по умолчанию по созданию отзыва
 
     def __str__(self) -> str:
         """Возвращает строковое представление отзыва."""
@@ -123,7 +130,7 @@ class Test(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['title']  # Порядок по умолчанию по названию теста
+        ordering = ["title"]  # Порядок по умолчанию по названию теста
 
     def __str__(self) -> str:
         """Возвращает строковое представление теста (название)."""

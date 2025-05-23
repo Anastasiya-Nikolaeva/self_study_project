@@ -54,6 +54,33 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, username, password, **extra_fields)
 
+    def create_owner(self, email, username, password=None, **extra_fields):
+        """
+        Создает и сохраняет пользователя-владельца с указанным email и паролем.
+
+        Аргументы:
+            email (str): Адрес электронной почты владельца.
+            username (str): Имя пользователя владельца.
+            password (str, optional): Пароль владельца.
+            **extra_fields: Дополнительные поля для владельца.
+
+        Возвращает:
+            CustomUser: Созданный владелец.
+        """
+        if not email:
+            raise ValueError("Поле электронной почты должно быть задано")
+        if not username:
+            raise ValueError("Поле имени пользователя должно быть задано")
+        if password is None:
+            raise ValueError("Пароль должен быть задан")
+
+        email = self.normalize_email(email)
+        owner = self.model(email=email, username=username, **extra_fields)
+        owner.set_password(password)
+        owner.is_owner = True
+        owner.save(using=self._db)
+        return owner
+
 
 class CustomUser(AbstractUser):
     """
@@ -65,6 +92,8 @@ class CustomUser(AbstractUser):
         phone (str): Номер телефона пользователя (необязательный).
         city (str): Город пользователя (необязательный).
         avatar (ImageField): Фото пользователя (необязательное).
+        is_owner (bool): Является ли пользователь преподавателем.
+
     """
 
     username = models.CharField(max_length=150, unique=True, default="default_username")
@@ -92,6 +121,7 @@ class CustomUser(AbstractUser):
         verbose_name="Фото",
         help_text="Загрузите фотографию",
     )
+    is_owner = models.BooleanField(default=False, verbose_name="Владелец материалов")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

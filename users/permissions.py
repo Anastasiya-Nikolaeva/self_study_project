@@ -30,8 +30,8 @@ class IsAuthenticatedUser(permissions.BasePermission):
 
 class IsAdminOrOwner(permissions.BasePermission):
     """
-    Разрешение, которое позволяет только администраторам или владельцам
-    вносить изменения в объект.
+    Разрешение, которое позволяет администраторам выполнять любые действия,
+    а владельцам - только с их собственными объектами.
     """
 
     def has_permission(self, request, view):
@@ -39,15 +39,24 @@ class IsAdminOrOwner(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Проверяем, есть ли pk в URL
-        if 'pk' in view.kwargs:
-            # Получаем queryset и проверяем, существует ли объект
-            queryset = view.get_queryset()
-            obj = queryset.filter(pk=view.kwargs['pk']).first()
-            if obj is not None:
-                return request.user and (request.user.is_staff or request.user == obj.owner)
+        # Проверяем, аутентифицирован ли пользователь
+        if not request.user.is_authenticated:
+            return False
 
-        return False  # Если pk нет или объект не найден, доступ запрещен
+        # Разрешаем создание объектов только владельцам
+        if request.method == 'POST':
+            return request.user.is_owner  # Только владельцы могут создавать объекты
+
+        # Для всех остальных методов (PUT, PATCH, DELETE)
+        if request.method in ['PUT', 'PATCH', 'DELETE']:
+            if "pk" in view.kwargs:
+                try:
+                    obj = view.get_queryset().get(pk=view.kwargs["pk"])
+                    return request.user.is_staff or request.user == obj.owner
+                except view.get_queryset().model.DoesNotExist:
+                    return False  # Объект не найден, доступ запрещен
+
+        return False
 
 
 class IsAuthenticatedForRead(permissions.BasePermission):

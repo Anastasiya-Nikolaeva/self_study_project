@@ -26,6 +26,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "phone",
             "city",
             "avatar",
+            "is_owner",
+            "is_superuser"
         ]
 
 
@@ -42,29 +44,22 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
         avatar (ImageField): Фото пользователя (необязательное).
     """
 
-    password = serializers.CharField(write_only=True)
-
     class Meta:
         model = CustomUser
         fields = [
             "username",
             "email",
             "password",
-            "phone",
-            "city",
-            "avatar",
         ]
 
+    password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise ValidationError("Пользователь с таким email уже существует.")
+        return value
+
     def validate_password(self, value):
-        """
-        Проверка пароля на минимальную длину.
-
-        Аргументы:
-            value (str): Пароль пользователя.
-
-        Исключения:
-            ValidationError: Если пароль содержит менее 8 символов.
-        """
         if len(value) < 8:
             raise ValidationError("Пароль должен содержать не менее 8 символов.")
         return value
@@ -79,6 +74,9 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
         Возвращает:
             CustomUser: Созданный пользователь.
         """
+        # Удаляем is_owner из validated_data, если оно есть
+        is_owner = validated_data.pop("is_owner", False)
+
         user = CustomUser.objects.create_user(
             email=validated_data["email"],
             username=validated_data["username"],
@@ -87,4 +85,10 @@ class CustomUserCreateSerializer(serializers.ModelSerializer):
             city=validated_data.get("city"),
             avatar=validated_data.get("avatar"),
         )
+
+        # Устанавливаем is_owner только если пользователь - администратор
+        if self.context['request'].user.is_staff:
+            user.is_owner = is_owner
+
+        user.save()
         return user

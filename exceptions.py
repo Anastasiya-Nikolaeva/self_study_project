@@ -8,7 +8,7 @@ def custom_exception_handler(exc, context):
     # Если это ошибка аутентификации
     if response is not None and response.status_code == 401:
         response.data = {
-            "detail": "Authentication credentials were not provided or are invalid."
+            "detail": "Учетные данные для проверки подлинности не были предоставлены или являются недействительными."
         }
 
     return response
