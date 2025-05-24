@@ -3,7 +3,7 @@ import logging
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.response import Response
 
-from users.permissions import IsAdmin, IsAdminOrOwner, IsAuthenticatedForRead, IsOwner
+from users.permissions import IsAdminOrOwner, IsAuthenticatedForRead
 
 from .models import Answer, Material, Question, Review, Test, TestResult, Theme
 from .pagination import StandardResultsSetPagination

@@ -126,6 +126,7 @@ class Test(models.Model):
         material (Material): Материал, к которому принадлежит тест.
         created_at (DateTimeField): Дата и время создания теста.
         updated_at (DateTimeField): Дата и время последнего обновления теста.
+        owner (User): Владелец теста.
     """
 
     title = models.CharField(max_length=200)
@@ -134,6 +135,7 @@ class Test(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1)
 
     class Meta:
         ordering = ["title"]  # Порядок по умолчанию по названию теста
@@ -163,7 +165,7 @@ class Question(models.Model):
     ]
 
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1
     )
     test = models.ForeignKey(Test, related_name="questions", on_delete=models.CASCADE)
     question_text = models.TextField()

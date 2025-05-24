@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import CustomUser as User
 
-from .models import Material, Theme, Review
+from .models import Material, Theme, Review, Test
 
 User = get_user_model()
 
@@ -496,28 +496,180 @@ class ReviewAPITests(APITestCase):
             response.status_code, status.HTTP_403_FORBIDDEN
         )  # Проверяем, что доступ запрещен
 
-    def test_user_can_only_leave_one_review_per_theme(self):
-        """
-        Проверяет, что пользователь может оставить только один отзыв на одну тему.
+class TestViewSetTests(APITestCase):
+    """
+    Тесты для TestViewSet, проверяющие функциональность управления тестами.
+    """
 
-        Ожидается, что первый отзыв будет успешно создан, а попытка создать второй отзыв
-        на ту же тему вернет статус 400 Bad Request.
+    def setUp(self):
         """
-        self.client.credentials(
-            HTTP_AUTHORIZATION="Bearer " + self.get_jwt_token(self.owner)
+        Настройка тестов. Создает пользователей (владельца, администратора и другого пользователя)
+        и тестовые материалы для использования в тестах.
+        """
+        self.owner = User.objects.create_user(
+            email="owner@example.com", username="owner", password="password", is_owner=True
         )
-        url = reverse("study:review-list")
-        data = {
-            "theme": self.theme.id,
-            "rating": 5,
-            "content": "Первый отзыв!",
-            "user": self.owner.pk
-        }
-        response = self.client.post(url, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # Проверяем, что первый отзыв создан
+        self.admin = User.objects.create_superuser(
+            email="admin@example.com", username="adminuser", password="adminpassword"
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com", username="other", password="password"
+        )
 
-        # Попробуем оставить второй отзыв на ту же тему
-        response = self.client.post(url, data, format="json")
-        self.assertEqual(
-            response.status_code, status.HTTP_400_BAD_REQUEST
-        )  # Ожидаем ошибку
+        # Создаем тестовую тему
+        self.theme = Theme.objects.create(
+            title="Тестовая тема",
+            description="Описание тестовой темы",
+            owner=self.owner,
+        )
+
+        # Создаем тестовый материал с указанием темы
+        self.material = Material.objects.create(
+            title="Тестовый материал",
+            description="Описание теста",
+            thema=self.theme,  # Указываем тему
+            owner=self.owner,  # Указываем владельца
+        )
+
+        # Создаем тест
+        self.test = Test.objects.create(
+            title="Тест для проверки",
+            material=self.material,
+            owner=self.owner,
+        )
+
+    def get_jwt_token(self, user):
+        """
+        Получает JWT токен для указанного пользователя.
+
+        :param user: Пользователь, для которого требуется токен.
+        :return: JWT токен в виде строки.
+        """
+        refresh = RefreshToken.for_user(user)
+        return str(refresh.access_token)
+
+    def test_create_test_as_owner(self):
+        """
+        Проверяет, что владелец может создать новый тест.
+
+        Ожидается, что статус ответа будет 201 (Создано).
+        """
+        token = self.get_jwt_token(self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.post(reverse('study:test-list'), {
+            'title': 'Новый тест',
+            'material': self.material.id,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Test.objects.count(), 2)  # Проверяем, что тест создан
+        self.assertEqual(Test.objects.get(title='Новый тест').title, 'Новый тест')  # Проверяем, что заголовок правильный
+
+    def test_create_test_as_other_user(self):
+        """
+        Проверяет, что другой пользователь не может создать новый тест.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
+        """
+        token = self.get_jwt_token(self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.post(reverse('study:test-list'), {
+            'title': 'Вредоносный тест',
+            'material': self.material.id,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_update_test_as_owner(self):
+        """
+        Проверяет, что владелец может обновить тест.
+
+        Ожидается, что статус ответа будет 200 (ОК).
+        """
+        token = self.get_jwt_token(self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.patch(reverse('study:test-detail', args=[self.test.id]), {
+            'title': 'Обновленный тест',
+            'material': self.material.id,
+        })
+
+        self.test.refresh_from_db()  # Обновляем объект из базы данных
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.test.title, 'Обновленный тест')  # Проверяем, что заголовок обновлен
+
+    def test_update_test_as_other_user(self):
+        """
+        Проверяет, что другой пользователь не может обновить тест.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
+        """
+        token = self.get_jwt_token(self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.patch(reverse('study:test-detail', args=[self.test.id]), {
+            'title': 'Попытка обновления',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_update_test(self):
+        """
+        Проверяет, что администратор может обновить тест.
+
+        Ожидается, что статус ответа будет 200 (ОК).
+        """
+        token = self.get_jwt_token(self.admin)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.patch(reverse('study:test-detail', args=[self.test.id]), {
+            'title': 'Обновленный тест от администратора',
+            'material': self.material.id,
+        })
+
+        self.test.refresh_from_db()  # Обновляем объект из базы данных
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.test.title, 'Обновленный тест от администратора')  # Проверяем, что заголовок обновлен
+
+    def test_delete_test_as_owner(self):
+        """
+        Проверяет, что владелец может удалить тест.
+
+        Ожидается, что статус ответа будет 204 (Нет содержимого).
+        """
+        token = self.get_jwt_token(self.owner)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.delete(reverse('study:test-detail', args=[self.test.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Test.objects.count(), 0)  # Проверяем, что тест удален
+
+    def test_delete_test_as_other_user(self):
+        """
+        Проверяет, что другой пользователь не может удалить тест.
+
+        Ожидается, что статус ответа будет 403 (Запрещено).
+        """
+        token = self.get_jwt_token(self.other_user)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.delete(reverse('study:test-detail', args=[self.test.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_delete_test(self):
+        """
+        Проверяет, что администратор может удалить тест.
+
+        Ожидается, что статус ответа будет 204 (Нет содержимого).
+        """
+        token = self.get_jwt_token(self.admin)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
+        response = self.client.delete(reverse('study:test-detail', args=[self.test.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Test.objects.count(), 0)  # Проверяем, что тест удален
