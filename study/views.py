@@ -53,9 +53,6 @@ class ThemeViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def perform_update(self, serializer):
-        # Обновляем только те поля, которые можно обновить
-        serializer.save()
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -118,8 +115,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.request.method in ["POST", "PUT", "PATCH", "DELETE"]:
-            # Разрешить доступ только владельцам или администраторам
-            self.permission_classes = [IsAdminOrOwner]
+            # Разрешить доступ только аутентифицированным пользователям
+            self.permission_classes = [permissions.IsAuthenticated]
         else:
             # Все могут просматривать отзывы
             self.permission_classes = [permissions.AllowAny]
@@ -144,18 +141,27 @@ class TestViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def create(self, request, *args, **kwargs):
-        """
-        Создание нового теста.
+        if not request.user.is_owner:
+            return Response(
+                {"detail": "Недостаточно прав для создания материала."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        Аргументы:
-            request: HTTP-запрос с данными теста.
+        material_id = request.data.get("material")
+        material = Material.objects.filter(id=material_id).first()
 
-        Возвращает:
-            Response: Ответ с данными созданного теста и статусом 201.
-        """
-        serializer = self.get_serializer(data=request.data)
+        if material is None:
+            return Response(
+                {"detail": "Материал не найден."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        data = request.data.copy()
+        data["material"] = material.id
+
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save()  # Владелец будет установлен автоматически на основе материала
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

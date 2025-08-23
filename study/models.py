@@ -22,8 +22,7 @@ class Theme(models.Model):
     description = models.TextField()
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1
-    )
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     class Meta:
         ordering = ["title"]  # Порядок по умолчанию по названию материала
@@ -101,7 +100,7 @@ class Review(models.Model):
     content = models.TextField(blank=True, null=True, verbose_name="Содержимое отзыва")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
 
     def save(self, *args, **kwargs):
@@ -135,7 +134,7 @@ class Test(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, default=1)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     class Meta:
         ordering = ["title"]  # Порядок по умолчанию по названию теста

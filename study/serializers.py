@@ -17,7 +17,7 @@ class ThemeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Theme
-        fields = ["id", "title", "preview_image", "description", "updated_at"]
+        fields = ["id", "title", "preview_image", "description", "updated_at", "owner"]
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -80,7 +80,8 @@ class TestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Test
-        fields = ["title", "material", "created_at", "updated_at"]
+        fields = ["id","title", "material", "created_at", "updated_at", "owner"]
+        read_only_fields = ["owner", "created_at"]
 
 
 class AnswerSerializer(serializers.ModelSerializer):
